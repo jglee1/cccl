@@ -1,7 +1,7 @@
 // SPDX-FileCopyrightText: Copyright (c) 2011-2022, NVIDIA CORPORATION. All rights reserved.
 // SPDX-License-Identifier: BSD-3-Clause
 
-#define C2H_EXPORTS
+#include <cuda/std/span>
 
 #include <c2h/generators.h>
 #include <c2h/vector.h>
@@ -12,7 +12,7 @@
 #  include <thrust/random.h>
 #endif
 
-namespace c2h
+namespace c2h::detail
 {
 
 class generator_t
@@ -25,13 +25,11 @@ public:
   ~generator_t();
 
   template <typename T>
-  void operator()(seed_t seed,
-                  c2h::device_vector<T>& data,
-                  T min = std::numeric_limits<T>::min(),
-                  T max = std::numeric_limits<T>::max());
+  void operator()(
+    seed_t seed, cuda::std::span<T> data, T min = std::numeric_limits<T>::min(), T max = std::numeric_limits<T>::max());
 
   template <typename T>
-  void operator()(modulo_t modulo, c2h::device_vector<T>& data);
+  void operator()(modulo_t modulo, cuda::std::span<T> data);
 
   float* distribution();
 
@@ -90,4 +88,4 @@ struct random_to_item_t<T, true>
   }
 };
 
-} // namespace c2h
+} // namespace c2h::detail
