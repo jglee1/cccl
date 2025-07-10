@@ -33,12 +33,8 @@ def scan_device(d_input, d_output, num_items, op, h_init, force_inclusive, strea
     scan_algorithm = (
         algorithms.inclusive_scan if force_inclusive else algorithms.exclusive_scan
     )
-    scan = scan_algorithm(d_input, d_output, op, h_init)
-    temp_storage_size = scan(None, d_input, d_output, num_items, h_init, stream=stream)
-    d_temp_storage = numba.cuda.device_array(
-        temp_storage_size, dtype=np.uint8, stream=stream.ptr if stream else 0
-    )
-    scan(d_temp_storage, d_input, d_output, num_items, h_init, stream=stream)
+    # Call single-phase API directly with all parameters including num_items
+    scan_algorithm(d_input, d_output, op, h_init, num_items, stream)
 
 
 @pytest.mark.parametrize(

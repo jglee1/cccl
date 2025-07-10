@@ -12,12 +12,13 @@ def merge_sort_pointer(keys, vals, output_keys, output_vals, build_only):
     def my_cmp(a: np.int32, b: np.int32) -> np.int32:
         return np.int32(a < b)
 
-    alg = algorithms.merge_sort(keys, vals, output_keys, output_vals, my_cmp)
-
+    alg = algorithms.make_merge_sort(keys, vals, output_keys, output_vals, my_cmp)
     if not build_only:
-        temp_bytes = alg(None, keys, vals, output_keys, output_vals, size)
-        scratch = cp.empty(temp_bytes, dtype=cp.uint8)
-        alg(scratch, keys, vals, output_keys, output_vals, size)
+        # Use make_merge_sort for build-only benchmarks
+        alg(None, keys, vals, output_keys, output_vals, my_cmp, size)
+    else:
+        # Use single-phase API for runtime benchmarks
+        alg(None, keys, vals, output_keys, output_vals, my_cmp, size)
 
     cp.cuda.runtime.deviceSynchronize()
 
@@ -26,12 +27,13 @@ def merge_sort_iterator(size, keys, vals, output_keys, output_vals, build_only):
     def my_cmp(a: np.int32, b: np.int32) -> np.int32:
         return np.int32(a < b)
 
-    alg = algorithms.merge_sort(keys, vals, output_keys, output_vals, my_cmp)
-
+    alg = algorithms.make_merge_sort(keys, vals, output_keys, output_vals, my_cmp)
     if not build_only:
-        temp_bytes = alg(None, keys, vals, output_keys, output_vals, size)
-        scratch = cp.empty(temp_bytes, dtype=cp.uint8)
-        alg(scratch, keys, vals, output_keys, output_vals, size)
+        # Use make_merge_sort for build-only benchmarks
+        alg(None, keys, vals, output_keys, output_vals, my_cmp, size)
+    else:
+        # Use single-phase API for runtime benchmarks
+        alg(None, keys, vals, output_keys, output_vals, my_cmp, size)
 
     cp.cuda.runtime.deviceSynchronize()
 
@@ -48,12 +50,13 @@ def merge_sort_struct(size, keys, vals, output_keys, output_vals, build_only):
     def my_cmp(a: MyStruct, b: MyStruct) -> np.int8:
         return np.int8(a.x < b.x)
 
-    alg = algorithms.merge_sort(keys, vals, output_keys, output_vals, my_cmp)
-
+    alg = algorithms.make_merge_sort(keys, vals, output_keys, output_vals, my_cmp)
     if not build_only:
-        temp_bytes = alg(None, keys, vals, output_keys, output_vals, size)
-        scratch = cp.empty(temp_bytes, dtype=cp.uint8)
-        alg(scratch, keys, vals, output_keys, output_vals, size)
+        # Use make_merge_sort for build-only benchmarks
+        alg(None, keys, vals, output_keys, output_vals, my_cmp, size)
+    else:
+        # Use single-phase API for runtime benchmarks
+        alg(None, keys, vals, output_keys, output_vals, my_cmp, size)
 
     cp.cuda.runtime.deviceSynchronize()
 
@@ -68,7 +71,7 @@ def bench_compile_merge_sort_pointer(compile_benchmark):
     def run():
         merge_sort_pointer(keys, vals, output_keys, output_vals, build_only=True)
 
-    compile_benchmark(algorithms.merge_sort, run)
+    compile_benchmark(algorithms.make_merge_sort, run)
 
 
 def bench_compile_merge_sort_iterator(compile_benchmark):
@@ -81,7 +84,7 @@ def bench_compile_merge_sort_iterator(compile_benchmark):
     def run():
         merge_sort_iterator(size, keys, vals, output_keys, output_vals, build_only=True)
 
-    compile_benchmark(algorithms.merge_sort, run)
+    compile_benchmark(algorithms.make_merge_sort, run)
 
 
 def bench_merge_sort_pointer(benchmark, size):

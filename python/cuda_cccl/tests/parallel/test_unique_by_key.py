@@ -63,32 +63,16 @@ def unique_by_key_device(
     num_items,
     stream=None,
 ):
-    unique_by_key = algorithms.unique_by_key(
-        d_in_keys, d_in_items, d_out_keys, d_out_items, d_out_num_selected, op
-    )
-
-    temp_storage_size = unique_by_key(
-        None,
+    # Call single-phase API directly with all parameters including num_items
+    algorithms.unique_by_key(
         d_in_keys,
         d_in_items,
         d_out_keys,
         d_out_items,
         d_out_num_selected,
+        op,
         num_items,
-        stream=stream,
-    )
-    d_temp_storage = numba.cuda.device_array(
-        temp_storage_size, dtype=np.uint8, stream=stream.ptr if stream else 0
-    )
-    unique_by_key(
-        d_temp_storage,
-        d_in_keys,
-        d_in_items,
-        d_out_keys,
-        d_out_items,
-        d_out_num_selected,
-        num_items,
-        stream=stream,
+        stream,
     )
 
 

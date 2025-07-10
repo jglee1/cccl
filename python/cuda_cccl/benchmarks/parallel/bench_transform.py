@@ -12,8 +12,7 @@ def unary_transform_pointer(inp, out, build_only):
     def op(a):
         return a + 1
 
-    transform = algorithms.unary_transform(inp, out, op)
-
+    transform = algorithms.make_unary_transform(inp, out, op)
     if not build_only:
         transform(inp, out, size)
 
@@ -26,8 +25,7 @@ def unary_transform_iterator(size, out, build_only):
     def op(a):
         return a + 1
 
-    transform = algorithms.unary_transform(d_in, out, op)
-
+    transform = algorithms.make_unary_transform(d_in, out, op)
     if not build_only:
         transform(d_in, out, size)
 
@@ -46,7 +44,7 @@ def unary_transform_struct(inp, out, build_only):
     def op(a):
         return MyStruct(a.x + 1, a.y + 1)
 
-    transform = algorithms.unary_transform(inp, out, op)
+    transform = algorithms.make_unary_transform(inp, out, op)
 
     if not build_only:
         transform(inp, out, size)
@@ -60,8 +58,7 @@ def binary_transform_pointer(inp1, inp2, out, build_only):
     def op(a, b):
         return a + b
 
-    transform = algorithms.binary_transform(inp1, inp2, out, op)
-
+    transform = algorithms.make_binary_transform(inp1, inp2, out, op)
     if not build_only:
         transform(inp1, inp2, out, size)
 
@@ -75,8 +72,7 @@ def binary_transform_iterator(size, out, build_only):
     def op(a, b):
         return a + b
 
-    transform = algorithms.binary_transform(d_in1, d_in2, out, op)
-
+    transform = algorithms.make_binary_transform(d_in1, d_in2, out, op)
     if not build_only:
         transform(d_in1, d_in2, out, size)
 
@@ -89,8 +85,7 @@ def binary_transform_struct(inp1, inp2, out, build_only):
     def op(a, b):
         return MyStruct(a.x + b.x, a.y + b.y)
 
-    transform = algorithms.binary_transform(inp1, inp2, out, op)
-
+    transform = algorithms.make_binary_transform(inp1, inp2, out, op)
     if not build_only:
         transform(inp1, inp2, out, size)
 
@@ -105,7 +100,7 @@ def bench_compile_unary_transform_pointer(compile_benchmark):
     def run():
         unary_transform_pointer(inp, out, build_only=True)
 
-    compile_benchmark(algorithms.unary_transform, run)
+    compile_benchmark(algorithms.make_unary_transform, run)
 
 
 def bench_compile_unary_transform_iterator(compile_benchmark):
@@ -115,7 +110,7 @@ def bench_compile_unary_transform_iterator(compile_benchmark):
     def run():
         unary_transform_iterator(size, out, build_only=True)
 
-    compile_benchmark(algorithms.unary_transform, run)
+    compile_benchmark(algorithms.make_unary_transform, run)
 
 
 def bench_compile_binary_transform_pointer(compile_benchmark):
@@ -127,7 +122,7 @@ def bench_compile_binary_transform_pointer(compile_benchmark):
     def run():
         binary_transform_pointer(inp1, inp2, out, build_only=True)
 
-    compile_benchmark(algorithms.binary_transform, run)
+    compile_benchmark(algorithms.make_binary_transform, run)
 
 
 def bench_compile_binary_transform_iterator(compile_benchmark):
@@ -137,7 +132,7 @@ def bench_compile_binary_transform_iterator(compile_benchmark):
     def run():
         binary_transform_iterator(size, out, build_only=True)
 
-    compile_benchmark(algorithms.binary_transform, run)
+    compile_benchmark(algorithms.make_binary_transform, run)
 
 
 def bench_unary_transform_pointer(benchmark, size):

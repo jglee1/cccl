@@ -43,17 +43,9 @@ def test_segmented_reduce(input_array, offset_dtype):
 
     h_init = np.zeros(tuple(), dtype=input_array.dtype)
 
-    segmented_reduce_fn = algorithms.segmented_reduce(
-        d_in, d_out, start_offsets, end_offsets, binary_op, h_init
-    )
-
-    temp_nbytes = segmented_reduce_fn(
-        None, d_in, d_out, n_segments, start_offsets, end_offsets, h_init
-    )
-    temp = cp.empty(temp_nbytes, dtype="uint8")
-
-    segmented_reduce_fn(
-        temp, d_in, d_out, n_segments, start_offsets, end_offsets, h_init
+    # Call single-phase API directly with num_segments parameter
+    algorithms.segmented_reduce(
+        d_in, d_out, start_offsets, end_offsets, binary_op, h_init, n_segments
     )
 
     d_expected = cp.empty_like(d_out)
@@ -93,16 +85,9 @@ def test_segmented_reduce_struct_type():
 
     h_init = Pixel(0, 0, 0)
 
-    alg = algorithms.segmented_reduce(
-        d_rgb, d_out, start_offsets, end_offsets, max_g_value, h_init
-    )
-    temp_storage_bytes = alg(
-        None, d_rgb, d_out, n_segments, start_offsets, end_offsets, h_init
-    )
-
-    d_temp_storage = cp.empty(temp_storage_bytes, dtype=np.uint8)
-    _ = alg(
-        d_temp_storage, d_rgb, d_out, n_segments, start_offsets, end_offsets, h_init
+    # Call single-phase API directly with n_segments parameter
+    algorithms.segmented_reduce(
+        d_rgb, d_out, start_offsets, end_offsets, max_g_value, h_init, n_segments
     )
 
     h_rgb = np.reshape(d_rgb.get(), (n_segments, -1))
@@ -162,17 +147,9 @@ def test_large_num_segments_uniform_segment_sizes_nonuniform_input():
         return (a + b) % np.uint8(7)
 
     h_init = np.zeros(tuple(), dtype=np.uint8)
-    alg = algorithms.segmented_reduce(
-        input_it, res, start_offsets, end_offsets, my_add, h_init
-    )
-
-    temp_storage_bytes = alg(
-        None, input_it, res, num_segments, start_offsets, end_offsets, h_init
-    )
-
-    d_temp_storage = cp.empty(temp_storage_bytes, dtype=np.uint8)
-    _ = alg(
-        d_temp_storage, input_it, res, num_segments, start_offsets, end_offsets, h_init
+    # Call single-phase API directly with num_segments parameter
+    algorithms.segmented_reduce(
+        input_it, res, start_offsets, end_offsets, my_add, h_init, num_segments
     )
 
     # Validation
@@ -194,13 +171,14 @@ def test_large_num_segments_uniform_segment_sizes_nonuniform_input():
         return np.uint8(1) if (a == b) else np.uint8(0)
 
     validate = cp.zeros(2**20, dtype=np.uint8)
-    cmp_fn = algorithms.binary_transform(res, expected, validate, cmp_op)
 
     id = 0
     while id < res.size:
         id_next = min(id + validate.size, res.size)
         num_items = id_next - id
-        cmp_fn(res[id:], expected + id, validate, num_items)
+        algorithms.binary_transform(
+            res[id:], expected + id, validate, cmp_op, num_items
+        )
         assert id == (expected + id).cvalue.value
         assert cp.all(validate[:num_items].view(np.bool_))
         id = id_next
@@ -245,7 +223,7 @@ def test_large_num_segments_nonuniform_segment_sizes_uniform_input():
 
         return offset_value
 
-    m0, p = 265, 163
+    m0, p = np.int64(265), np.int64(163)
     offsets_it = iterators.TransformIterator(
         iterators.CountingIterator(np.int64(-1)), offset_functor(m0, p)
     )
@@ -263,17 +241,9 @@ def test_large_num_segments_nonuniform_segment_sizes_uniform_input():
     assert res.size == num_segments
 
     h_init = np.zeros(tuple(), dtype=np.int16)
-    alg = algorithms.segmented_reduce(
-        input_it, res, start_offsets, end_offsets, _plus, h_init
-    )
-
-    temp_storage_bytes = alg(
-        None, input_it, res, num_segments, start_offsets, end_offsets, h_init
-    )
-
-    d_temp_storage = cp.empty(temp_storage_bytes, dtype=np.uint8)
-    _ = alg(
-        d_temp_storage, input_it, res, num_segments, start_offsets, end_offsets, h_init
+    # Call single-phase API directly with num_segments parameter
+    algorithms.segmented_reduce(
+        input_it, res, start_offsets, end_offsets, _plus, h_init, num_segments
     )
 
     # Validation
@@ -289,13 +259,14 @@ def test_large_num_segments_nonuniform_segment_sizes_uniform_input():
         return np.uint8(1) if (a == b) else np.uint8(0)
 
     validate = cp.zeros(2**20, dtype=np.uint8)
-    cmp_fn = algorithms.binary_transform(res, expected, validate, cmp_op)
 
     id = 0
     while id < res.size:
         id_next = min(id + validate.size, res.size)
         num_items = id_next - id
-        cmp_fn(res[id:], expected + id, validate, num_items)
+        algorithms.binary_transform(
+            res[id:], expected + id, validate, cmp_op, num_items
+        )
         assert id == (expected + id).cvalue.value
         assert cp.all(validate[:num_items].view(np.bool_))
         id = id_next
