@@ -6,6 +6,7 @@
 from ._merge_sort import merge_sort as merge_sort
 from ._radix_sort import DoubleBuffer, SortOrder
 from ._radix_sort import radix_sort as radix_sort
+from ._reduce import make_reduce as make_reduce
 from ._reduce import reduce_into as reduce_into
 from ._scan import exclusive_scan as exclusive_scan
 from ._scan import inclusive_scan as inclusive_scan
