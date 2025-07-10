@@ -122,8 +122,8 @@ _CCCL_HOST_DEVICE constexpr auto bulk_copy_alignment(int sm_arch) -> int
 }
 
 template <typename... RandomAccessIteratorsIn>
-_CCCL_HOST_DEVICE constexpr auto bulk_copy_smem_for_tile_size(int tile_size, int block_threads, int bulk_copy_align)
-  -> int
+_CCCL_HOST_DEVICE constexpr auto
+bulk_copy_smem_for_tile_size(int tile_size, int block_threads, int bulk_copy_align) -> int
 {
   // we rely on the tile_size being a multiple of alignments, so shifting offsets/pointers by it retains alignments
   _CCCL_ASSERT(tile_size % bulk_copy_align == 0, "");
@@ -142,7 +142,7 @@ _CCCL_HOST_DEVICE constexpr auto bulk_copy_smem_for_tile_size(int tile_size, int
   // So let's start at offset 16. This also hits the worst case scenario for types with alignment larger than 16,
   // needing the most padding before the first tile. From observation, dynamic shared memory starts at address 0x408
   // within the shared memory window of the current CTA.
-  int smem_size                    = ::cuda::round_up(sizeof(uint64_t), 16);
+  int smem_size                    = ::cuda::round_up(int{sizeof(uint64_t)}, 16);
   [[maybe_unused]] auto count_smem = [&](int vt_size, int vt_alignment) {
     if (!tile_sizes_retain_max_alignment)
     {
