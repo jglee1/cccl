@@ -160,17 +160,21 @@ device_vector<T> gen_uniform_offsets(seed_t seed, T total_elements, T min_segmen
 template <typename OffsetT, typename KeyT>
 void init_key_segments(const device_vector<OffsetT>& segment_offsets, device_vector<KeyT>& keys_out)
 {
-  detail::init_key_segments({THRUST_NS_QUALIFIER::raw_pointer_cast(segment_offsets.data()), segment_offsets.size()},
-                            THRUST_NS_QUALIFIER::raw_pointer_cast(keys_out.data()),
-                            sizeof(KeyT));
+  detail::init_key_segments(
+    ::cuda::std::span<const OffsetT>{
+      THRUST_NS_QUALIFIER::raw_pointer_cast(segment_offsets.data()), segment_offsets.size()},
+    THRUST_NS_QUALIFIER::raw_pointer_cast(keys_out.data()),
+    sizeof(KeyT));
 }
 
 template <typename OffsetT, template <typename> class... Ps>
 void init_key_segments(const device_vector<OffsetT>& segment_offsets, device_vector<custom_type_t<Ps...>>& keys_out)
 {
-  detail::init_key_segments({THRUST_NS_QUALIFIER::raw_pointer_cast(segment_offsets.data()), segment_offsets.size()},
-                            static_cast<custom_type_state_t*>(THRUST_NS_QUALIFIER::raw_pointer_cast(keys_out.data())),
-                            sizeof(custom_type_t<Ps...>));
+  detail::init_key_segments(
+    ::cuda::std::span<const OffsetT>{
+      THRUST_NS_QUALIFIER::raw_pointer_cast(segment_offsets.data()), segment_offsets.size()},
+    static_cast<custom_type_state_t*>(THRUST_NS_QUALIFIER::raw_pointer_cast(keys_out.data())),
+    sizeof(custom_type_t<Ps...>));
 }
 
 } // namespace c2h
