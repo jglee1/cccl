@@ -44,7 +44,7 @@ struct random_to_vec_item_t
 
   T m_min;
   T m_max;
-  float* m_in{};
+  const float* m_in{};
   T* m_out{};
 };
 
@@ -53,11 +53,8 @@ struct random_to_vec_item_t
     template <>                                                                                                   \
     void gen_values_between(seed_t seed, ::cuda::std::span<T> data, T min, T max)                                 \
     {                                                                                                             \
-      generator_t& generator = generator_t::instance();                                                           \
-      generator.prepare_random_generator(seed, data.size());                                                      \
-      generator.generate();                                                                                       \
-      auto op =                                                                                                   \
-        random_to_vec_item_t<T, ::cuda::std::tuple_size_v<T>>{min, max, generator.distribution(), data.data()};   \
+      const auto* dist = generator.prepare_random_generator(seed, data.size());                                   \
+      auto op          = random_to_vec_item_t<T, ::cuda::std::tuple_size_v<T>>{min, max, dist, data.data()};      \
       thrust::for_each(                                                                                           \
         device_policy, thrust::counting_iterator<size_t>{0}, thrust::counting_iterator<size_t>{data.size()}, op); \
     }
@@ -136,23 +133,23 @@ VEC_SPECIALIZATION(__nv_bfloat162);
 #  endif // TEST_BF_T()
 
 template <typename VecType, typename Type>
-struct vec_gen_t
+struct counter_to_cyclic_vector_t
 {
-  size_t n;
-  scalar_to_vec_t<VecType> convert;
+  std::size_t n;
 
   template <typename CounterT>
   __device__ VecType operator()(CounterT id) const
   {
-    return convert(static_cast<Type>(id) % n);
+    return scalar_to_vec_t<VecType>{}(static_cast<Type>(id) % n);
   }
 };
 
-#  define VEC_GEN_MOD_SPECIALIZATION(VEC_TYPE, SCALAR_TYPE)                                                   \
-    template <>                                                                                               \
-    void gen_values_cyclic<VEC_TYPE>(modulo_t mod, ::cuda::std::span<VEC_TYPE> data)                          \
-    {                                                                                                         \
-      thrust::tabulate(device_policy, data.begin(), data.end(), vec_gen_t<VEC_TYPE, SCALAR_TYPE>{mod.get()}); \
+#  define VEC_GEN_MOD_SPECIALIZATION(VEC_TYPE, SCALAR_TYPE)                                                     \
+    template <>                                                                                                 \
+    void gen_values_cyclic<VEC_TYPE>(modulo_t mod, ::cuda::std::span<VEC_TYPE> data)                            \
+    {                                                                                                           \
+      thrust::tabulate(                                                                                         \
+        device_policy, data.begin(), data.end(), counter_to_cyclic_vector_t<VEC_TYPE, SCALAR_TYPE>{mod.get()}); \
     }
 
 VEC_GEN_MOD_SPECIALIZATION(short2, short);

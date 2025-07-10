@@ -72,32 +72,13 @@ struct random_to_item_t<cuda::std::complex<T>, false>
   }
 };
 
-generator_t::generator_t()
-{
-#if C2H_HAS_CURAND
-  curandCreateGenerator(&m_gen, CURAND_RNG_PSEUDO_DEFAULT);
-#endif
-}
-
-generator_t::~generator_t()
-{
-#if C2H_HAS_CURAND
-  curandDestroyGenerator(m_gen);
-#endif
-}
-
-float* generator_t::distribution()
-{
-  return thrust::raw_pointer_cast(m_distribution.data());
-}
-
 void generator_t::generate()
 {
 #if C2H_HAS_CURAND
-  curandGenerateUniform(m_gen, this->distribution(), this->m_distribution.size());
+  curandGenerateUniform(m_gen, thrust::raw_pointer_cast(m_distribution.data()), m_distribution.size());
 #else
-  thrust::tabulate(device_policy, this->m_distribution.begin(), this->m_distribution.end(), i_to_rnd_t{m_re});
-  m_re.discard(this->m_distribution.size());
+  thrust::tabulate(device_policy, m_distribution.begin(), m_distribution.end(), i_to_rnd_t{m_re});
+  m_re.discard(m_distribution.size());
 #endif
 }
 
@@ -113,41 +94,7 @@ float* generator_t::prepare_random_generator(seed_t seed, std::size_t num_items)
 
   generate();
 
-  return this->distribution();
-}
-
-template <class T>
-void generator_t::operator()(seed_t seed, cuda::std::span<T> data, T min, T max)
-{
-  prepare_random_generator(seed, data.size());
-
-  thrust::transform(
-    device_policy, m_distribution.begin(), m_distribution.end(), data.begin(), random_to_item_t<T>(min, max));
-}
-
-template <typename T>
-struct count_to_item_t
-{
-  uint64_t n;
-
-  template <typename CounterT>
-  __device__ T operator()(CounterT id)
-  {
-    // This has to be a type for which extended floating point types like __nv_fp8_e5m2 provide an overload
-    return static_cast<T>(static_cast<float>(static_cast<uint64_t>(id) % n));
-  }
-};
-
-template <typename T>
-void generator_t::operator()(modulo_t mod, cuda::std::span<T> data)
-{
-  thrust::tabulate(device_policy, data.begin(), data.end(), count_to_item_t<T>{mod.get()});
-}
-
-generator_t& generator_t::instance()
-{
-  static generator_t generator;
-  return generator;
+  return thrust::raw_pointer_cast(m_distribution.data());
 }
 
 struct random_to_custom_t
@@ -168,7 +115,7 @@ struct random_to_custom_t
 
 void gen_custom_type_state(seed_t seed, char* d_out, std::size_t elements, std::size_t element_size)
 {
-  float* d_in = generator_t::instance().prepare_random_generator(seed, elements * 2);
+  float* d_in = generator.prepare_random_generator(seed, elements * 2);
   thrust::for_each(device_policy,
                    thrust::counting_iterator<std::size_t>{0},
                    thrust::counting_iterator<std::size_t>{elements},
@@ -360,13 +307,27 @@ template std::size_t gen_uniform_offsets(
 template <typename T>
 void gen_values_between(seed_t seed, ::cuda::std::span<T> data, T min, T max)
 {
-  generator_t::instance()(seed, data, min, max);
+  const auto* dist = generator.prepare_random_generator(seed, data.size());
+  thrust::transform(device_policy, dist, dist + data.size(), data.begin(), random_to_item_t<T>(min, max));
 }
+
+template <typename T>
+struct counter_to_cyclic_item_t
+{
+  std::size_t n;
+
+  template <typename CounterT>
+  __device__ T operator()(CounterT id)
+  {
+    // This has to be a type for which extended floating point types like __nv_fp8_e5m2 provide an overload
+    return static_cast<T>(static_cast<float>(static_cast<uint64_t>(id) % n));
+  }
+};
 
 template <typename T>
 void gen_values_cyclic(modulo_t mod, ::cuda::std::span<T> data)
 {
-  generator_t::instance()(mod, data);
+  thrust::tabulate(device_policy, data.begin(), data.end(), counter_to_cyclic_item_t<T>{mod.get()});
 }
 
 #define INSTANTIATE_RND(TYPE) \
