@@ -123,13 +123,13 @@ void gen(seed_t seed,
          T min = ::cuda::std::numeric_limits<T>::lowest(),
          T max = ::cuda::std::numeric_limits<T>::max())
 {
-  gen_values_between(seed, {THRUST_NS_QUALIFIER::raw_pointer_cast(data.data()), data.size()}, min, max);
+  detail::gen_values_between(seed, {THRUST_NS_QUALIFIER::raw_pointer_cast(data.data()), data.size()}, min, max);
 }
 
 template <typename T>
 void gen(modulo_t mod, device_vector<T>& data)
 {
-  gen_values_cyclic(mod, {data.data(), data.size()});
+  detail::gen_values_cyclic(mod, ::cuda::std::span<T>{THRUST_NS_QUALIFIER::raw_pointer_cast(data.data()), data.size()});
 }
 
 /**
